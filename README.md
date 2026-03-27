@@ -1,1 +1,1 @@
-# wordcard-en
+# wordcard-fr
