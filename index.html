@@ -1,0 +1,2851 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#7C4DFF" id="theme-color-meta">
+<title>背法语</title>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<style>
+/* ===== CSS 变量 ===== */
+:root {
+  --bg: #F3F0FF;
+  --card-bg: #FFFFFF;
+  --nav-bg: #FFFFFF;
+  --primary: #7C4DFF;
+  --primary-light: #EDE7FF;
+  --text-primary: #2D2D3A;
+  --text-secondary: #8E8E9E;
+  --border-color: #DDD6F3;
+  --red: #E74C3C;
+  --orange: #F39C12;
+  --purple: #7C4DFF;
+  --green: #27AE60;
+  --input-bg: #F8F6FF;
+}
+[data-theme="dark"] {
+  --bg: #141018;
+  --card-bg: #211D2A;
+  --nav-bg: #211D2A;
+  --primary: #B39DFF;
+  --primary-light: #2D2640;
+  --text-primary: #EDE6F3;
+  --text-secondary: #9990A8;
+  --border-color: #2D2640;
+  --input-bg: #1A1525;
+}
+
+/* ===== 基础重置 ===== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text-primary);
+  -webkit-tap-highlight-color: transparent;
+  overflow: hidden;
+  height: 100vh;
+}
+
+/* ===== 页面容器 ===== */
+.page {
+  display: none;
+  height: calc(100vh - 60px);
+  overflow-y: auto;
+  padding: 16px;
+  padding-bottom: 80px;
+  position: relative;
+  z-index: 1;
+}
+#page-home { display: block; }
+
+/* ===== 底部导航 ===== */
+.bottom-nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 60px;
+  background: var(--nav-bg);
+  display: flex;
+  border-top: 1px solid var(--border-color);
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+.nav-item.active { color: var(--primary); }
+.nav-item .nav-icon { font-size: 22px; margin-bottom: 2px; }
+
+/* ===== 通用卡片 ===== */
+.card {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+/* ===== 按钮点击缩放 ===== */
+button:active, .clickable:active { transform: scale(0.95); }
+button { cursor: pointer; border: none; outline: none; }
+
+/* ===== 输入框 ===== */
+input, textarea, select {
+  background: var(--input-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 15px;
+  width: 100%;
+  outline: none;
+  font-family: inherit;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--primary);
+}
+select option { background: var(--card-bg); color: var(--text-primary); }
+
+/* ===== Toast（z-index:400）===== */
+#toast {
+  position: fixed;
+  top: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(44,44,58,0.95);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  z-index: 400;
+  transition: top 0.3s ease;
+  white-space: nowrap;
+  max-width: 90vw;
+  text-align: center;
+  pointer-events: none;
+}
+[data-theme="dark"] #toast { background: rgba(200,190,255,0.15); backdrop-filter: blur(10px); }
+
+/* ===== 确认对话框（z-index:300/301）===== */
+.confirm-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 300;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.confirm-card {
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 24px;
+  width: 100%; max-width: 320px;
+  z-index: 301;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+}
+.confirm-title { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+.confirm-msg { font-size: 14px; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.5; }
+.confirm-btns { display: flex; gap: 10px; }
+.confirm-btns button {
+  flex: 1; padding: 12px;
+  border-radius: 10px;
+  font-size: 15px; font-weight: 600;
+  transition: transform 0.1s;
+}
+.btn-cancel { background: var(--primary-light); color: var(--primary); }
+.btn-confirm { background: var(--primary); color: #fff; }
+.btn-danger { background: var(--red); color: #fff; }
+
+/* ===== 模态框（z-index:250/251）===== */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 250;
+  display: flex; align-items: flex-end;
+  padding: 0;
+}
+.modal-sheet {
+  background: var(--card-bg);
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 0 0 env(safe-area-inset-bottom,0) 0;
+  z-index: 251;
+  animation: slideUp 0.3s ease;
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 8px;
+  border-bottom: 1px solid var(--border-color);
+  position: sticky; top: 0;
+  background: var(--card-bg);
+  z-index: 1;
+}
+.modal-title { font-size: 17px; font-weight: 700; }
+.modal-close {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-body { padding: 0 20px 20px; }
+
+/* ===== Tab 栏 ===== */
+.modal-tabs {
+  display: flex;
+  width: 100%;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 16px;
+  margin-top: 8px;
+}
+.modal-tab {
+  flex: 1;
+  text-align: center;
+  padding: 10px 0;
+  font-size: 14px;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+.modal-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  font-weight: 600;
+}
+
+/* ===== 表单组 ===== */
+.form-group { margin-bottom: 14px; }
+.form-label { font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; display: block; }
+.form-row { display: flex; gap: 10px; align-items: center; }
+
+/* ===== 主按钮 ===== */
+.btn-primary {
+  width: 100%;
+  padding: 14px;
+  background: var(--primary);
+  color: #fff;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  transition: transform 0.1s;
+  margin-top: 4px;
+}
+.btn-primary:active { transform: scale(0.97); }
+.btn-secondary {
+  width: 100%;
+  padding: 12px;
+  background: var(--primary-light);
+  color: var(--primary);
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  transition: transform 0.1s;
+}
+
+/* ===== 格式说明折叠 ===== */
+.format-toggle {
+  font-size: 13px;
+  color: var(--primary);
+  cursor: pointer;
+  padding: 4px 0;
+  user-select: none;
+}
+.format-box {
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  line-height: 1.6;
+  margin-bottom: 10px;
+  font-family: monospace;
+}
+
+/* ===== 预览列表 ===== */
+.preview-list { max-height: 180px; overflow-y: auto; margin-bottom: 12px; }
+.preview-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 4px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 14px;
+}
+.preview-item:last-child { border-bottom: none; }
+.preview-item.duplicate { color: var(--text-secondary); opacity: 0.6; }
+.preview-item input[type="checkbox"] { width: 16px; height: 16px; flex-shrink: 0; accent-color: var(--primary); }
+
+/* ===== OCR 区域 ===== */
+.ocr-drop-area {
+  border: 2px dashed var(--border-color);
+  border-radius: 12px;
+  padding: 32px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  margin-bottom: 12px;
+}
+.ocr-drop-area:hover { border-color: var(--primary); }
+.ocr-img-preview { width: 100%; max-height: 200px; object-fit: contain; border-radius: 8px; margin-bottom: 10px; }
+.ocr-progress-bar {
+  height: 6px;
+  background: var(--border-color);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.ocr-progress-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+/* ===== 详情面板（z-index:200/201）===== */
+.detail-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 200;
+}
+.detail-panel {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: var(--card-bg);
+  border-radius: 20px 20px 0 0;
+  padding: 20px;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom,0));
+  max-height: 80vh;
+  overflow-y: auto;
+  z-index: 201;
+  animation: slideUp 0.3s ease;
+}
+
+/* ===== 词库列表 ===== */
+.word-card-item {
+  background: var(--card-bg);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  cursor: pointer;
+  transition: transform 0.1s;
+  user-select: none;
+}
+.word-card-item:active { transform: scale(0.98); }
+.word-item-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.word-french { font-size: 16px; font-weight: 600; }
+.word-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+.badge-new { background: var(--primary-light); color: var(--primary); }
+.badge-learning { background: #FEF3E2; color: var(--orange); }
+.badge-mastered { background: #E8F8EF; color: var(--green); }
+[data-theme="dark"] .badge-learning { background: #3A2E10; }
+[data-theme="dark"] .badge-mastered { background: #0E2E1A; }
+.word-chinese { font-size: 14px; color: var(--text-secondary); margin-bottom: 4px; }
+.word-meta { font-size: 12px; color: var(--text-secondary); opacity: 0.8; }
+
+/* ===== 分类标签 / 状态过滤 ===== */
+.category-tags, .status-filters {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  gap: 8px;
+  padding: 8px 0;
+}
+.category-tags::-webkit-scrollbar, .status-filters::-webkit-scrollbar { display: none; }
+.category-tag, .status-filter {
+  flex-shrink: 0;
+  white-space: nowrap;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  transition: all 0.15s;
+  user-select: none;
+}
+.category-tag.active, .status-filter.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+/* ===== 词根区域 ===== */
+.morph-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--primary);
+  background: var(--primary-light);
+  border-radius: 8px;
+  padding: 4px 10px;
+  cursor: pointer;
+  margin-top: 8px;
+  user-select: none;
+}
+.morph-content {
+  text-align: left !important;
+  padding: 12px 16px;
+  border-left: 3px solid var(--primary);
+  border-radius: 0 8px 8px 0;
+  background: var(--primary-light);
+  margin-top: 8px;
+}
+.morph-prototype { text-align: left !important; color: var(--text-secondary); font-size: 14px; margin-bottom: 8px; }
+.morph-section-title { text-align: left !important; font-size: 14px; color: var(--text-secondary); margin: 8px 0 4px; }
+.morph-part-line { text-align: left !important; padding: 3px 0; font-size: 15px; }
+.morph-part-name { font-weight: 700; color: var(--primary); }
+.morph-memory { text-align: left !important; margin-top: 8px; font-size: 14px; color: var(--text-secondary); }
+
+/* ===== 设置页 ===== */
+.settings-section-title {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 20px 0 8px;
+  padding-left: 4px;
+}
+.settings-item {
+  background: var(--card-bg);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+}
+.settings-item:first-child { border-radius: 12px 12px 0 0; }
+.settings-item:last-child { border-radius: 0 0 12px 12px; border-bottom: none; }
+.settings-item:only-child { border-radius: 12px; }
+.settings-item-label { font-size: 15px; }
+.settings-item-value { font-size: 14px; color: var(--text-secondary); }
+.settings-group { border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+
+/* ===== 开关 ===== */
+.toggle-switch {
+  width: 44px; height: 26px;
+  background: var(--border-color);
+  border-radius: 13px;
+  position: relative;
+  transition: background 0.2s;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.toggle-switch.on { background: var(--primary); }
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  width: 20px; height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  top: 3px; left: 3px;
+  transition: left 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.toggle-switch.on::after { left: 21px; }
+
+/* ===== 首页 ===== */
+.home-greeting { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+.home-date { font-size: 14px; color: var(--text-secondary); margin-bottom: 16px; }
+.overview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+.overview-cell { background: var(--card-bg); border-radius: 12px; padding: 14px 10px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.overview-num { font-size: 26px; font-weight: 700; }
+.overview-label { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+.progress-bar-wrap { background: var(--border-color); border-radius: 4px; height: 6px; overflow: hidden; margin: 10px 0 4px; }
+.progress-bar-fill { height: 100%; background: var(--primary); border-radius: 4px; transition: width 0.4s; }
+.stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.stat-cell { background: var(--card-bg); border-radius: 12px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.stat-num { font-size: 22px; font-weight: 700; color: var(--primary); }
+.stat-label { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+/* ===== 学习页 ===== */
+.study-center {
+  min-height: calc(100vh - 140px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+.mode-card {
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  width: 100%;
+  cursor: pointer;
+  transition: transform 0.15s;
+  user-select: none;
+}
+.mode-card:active { transform: scale(0.98); }
+.mode-emoji-wrap {
+  width: 56px; height: 56px;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 30px;
+  margin-bottom: 12px;
+}
+.mode-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+.mode-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.5; }
+
+/* ===== 闪卡 ===== */
+#study-area { width: 100%; }
+.study-progress-bar {
+  height: 6px;
+  background: var(--border-color);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.study-progress-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+.study-progress-text { font-size: 13px; color: var(--text-secondary); text-align: right; margin-bottom: 16px; }
+
+/* 3D 翻转卡片 */
+.flip-card { width: 100%; perspective: 1000px; height: 240px; margin-bottom: 16px; cursor: pointer; }
+.flip-inner {
+  width: 100%; height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.3s ease;
+}
+.flip-inner.flipped { transform: rotateY(180deg); }
+.flip-face {
+  position: absolute; inset: 0;
+  background: var(--card-bg);
+  border-radius: 20px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 24px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+}
+.flip-back {
+  transform: rotateY(180deg);
+  justify-content: flex-start;
+  padding-top: 20px;
+}
+.flip-word {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--primary);
+  text-align: center;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+.flip-hint { font-size: 14px; color: var(--text-secondary); }
+.flip-chinese { font-size: 22px; font-weight: 600; text-align: center; margin: 8px 0 4px; width: 100%; }
+.flip-dots { font-size: 20px; color: var(--primary); font-weight: 700; text-align: center; width: 100%; margin-bottom: 8px; }
+
+/* 评分按钮 */
+.rating-btns {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+  animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.rating-btn {
+  padding: 10px 4px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  transition: transform 0.1s;
+}
+.rating-btn:active { transform: scale(0.95); }
+.r1 { background: #FFE8E6; color: var(--red); }
+.r2 { background: #FEF3E2; color: var(--orange); }
+.r3 { background: var(--primary-light); color: var(--primary); }
+.r4 { background: #E8F8EF; color: var(--green); }
+[data-theme="dark"] .r1 { background: #3A1510; }
+[data-theme="dark"] .r2 { background: #3A2E10; }
+[data-theme="dark"] .r4 { background: #0E2E1A; }
+
+/* 拼写模式 */
+.spell-word {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--primary);
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.spell-card {
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 24px 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  margin-bottom: 12px;
+}
+.spell-result-icon { font-size: 48px; text-align: center; margin-bottom: 12px; }
+.spell-answer-compare { font-size: 14px; color: var(--text-secondary); margin: 6px 0; }
+.wrong-answer { text-decoration: line-through; color: var(--red); }
+.correct-answer { color: var(--green); font-weight: 600; }
+
+/* 完成页 */
+.finish-card {
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 32px 24px;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  width: 100%;
+}
+.finish-icon { font-size: 64px; margin-bottom: 12px; }
+.finish-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+.finish-sub { font-size: 14px; color: var(--text-secondary); margin-bottom: 20px; }
+.finish-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 20px; }
+.finish-stat { background: var(--bg); border-radius: 10px; padding: 12px 6px; }
+.finish-stat-num { font-size: 20px; font-weight: 700; color: var(--primary); }
+.finish-stat-label { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+.finish-btns { display: flex; gap: 10px; }
+.btn-outline {
+  flex: 1; padding: 13px;
+  border-radius: 12px;
+  font-size: 15px; font-weight: 600;
+  background: var(--primary-light);
+  color: var(--primary);
+  transition: transform 0.1s;
+}
+.btn-outline:active { transform: scale(0.97); }
+.btn-fill {
+  flex: 1; padding: 13px;
+  border-radius: 12px;
+  font-size: 15px; font-weight: 600;
+  background: var(--primary);
+  color: #fff;
+  transition: transform 0.1s;
+}
+.btn-fill:active { transform: scale(0.97); }
+
+/* 完成后继续练习 */
+.extra-option-card {
+  background: var(--card-bg);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  cursor: pointer;
+  transition: transform 0.1s;
+  user-select: none;
+}
+.extra-option-card:active { transform: scale(0.98); }
+.extra-option-card.disabled { opacity: 0.45; pointer-events: none; }
+.extra-emoji-wrap {
+  width: 48px; height: 48px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; flex-shrink: 0;
+}
+
+/* 数量选择器模态 */
+.qty-input-wrap { padding: 20px; }
+.qty-input-wrap input { font-size: 24px; text-align: center; padding: 12px; }
+
+/* ===== 悬浮按钮 ===== */
+.fab {
+  position: fixed;
+  bottom: 76px;
+  right: 20px;
+  width: 52px; height: 52px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 28px;
+  border-radius: 50%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(124,77,255,0.4);
+  z-index: 150;
+  transition: transform 0.15s;
+  cursor: pointer;
+  user-select: none;
+  line-height: 1;
+}
+.fab.show { display: flex; }
+.fab:active { transform: scale(0.92); }
+
+/* ===== 朗读按钮 ===== */
+.speak-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px; height: 36px;
+  border: none;
+  background: var(--primary-light);
+  border-radius: 50%;
+  font-size: 18px;
+  cursor: pointer;
+  margin-left: 8px;
+  vertical-align: middle;
+  transition: transform 0.15s;
+  flex-shrink: 0;
+}
+.speak-btn:active { transform: scale(0.9); }
+
+/* ===== 分类管理 ===== */
+.cat-manage-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+.cat-manage-item:last-child { border-bottom: none; }
+.cat-manage-name { flex: 1; font-size: 15px; }
+.cat-action-btn {
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.cat-edit-btn { background: var(--primary-light); color: var(--primary); }
+.cat-del-btn { background: #FFE8E6; color: var(--red); }
+[data-theme="dark"] .cat-del-btn { background: #3A1510; }
+
+/* ===== 导入预览（z-index:300/301）===== */
+.import-preview-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 300;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.import-preview-card {
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 0;
+  width: 100%; max-width: 380px;
+  z-index: 301;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+}
+.import-preview-body { overflow-y: auto; padding: 16px; flex: 1; }
+.import-stat-row { display: flex; gap: 8px; margin-bottom: 12px; }
+.import-stat-chip {
+  flex: 1; text-align: center;
+  padding: 10px 4px;
+  border-radius: 10px;
+  font-size: 13px; font-weight: 600;
+}
+.chip-new { background: #E8F8EF; color: var(--green); }
+.chip-dup { background: #FEF3E2; color: var(--orange); }
+[data-theme="dark"] .chip-new { background: #0E2E1A; }
+[data-theme="dark"] .chip-dup { background: #3A2E10; }
+
+/* 分类管理模态 */
+.cat-modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 250;
+  display: flex; align-items: flex-end;
+}
+.cat-modal-sheet {
+  background: var(--card-bg);
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-height: 70vh;
+  overflow-y: auto;
+  z-index: 251;
+  animation: slideUp 0.3s ease;
+  padding-bottom: env(safe-area-inset-bottom,0);
+}
+
+/* 数量输入模态 */
+.qty-modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 250;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.qty-modal-card {
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 24px;
+  width: 100%; max-width: 280px;
+  z-index: 251;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+}
+
+/* 编辑单词模态 */
+.edit-modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 250;
+  display: flex; align-items: flex-end;
+}
+.edit-modal-sheet {
+  background: var(--card-bg);
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  z-index: 251;
+  animation: slideUp 0.3s ease;
+  padding: 0 0 env(safe-area-inset-bottom,0) 0;
+}
+</style>
+</head>
+<body>
+
+<!-- ===== Toast ===== -->
+<div id="toast"></div>
+
+<!-- ===== 页面：首页 ===== -->
+<div id="page-home" class="page">
+  <div class="home-greeting" id="home-greeting">你好 👋</div>
+  <div class="home-date" id="home-date"></div>
+
+  <!-- 今日概览卡片 -->
+  <div class="card">
+    <div style="font-size:15px;font-weight:700;margin-bottom:12px;">📊 今日概览</div>
+    <div class="overview-grid">
+      <div class="overview-cell">
+        <div class="overview-num" id="ov-new" style="color:var(--purple)">0</div>
+        <div class="overview-label">待学习</div>
+      </div>
+      <div class="overview-cell">
+        <div class="overview-num" id="ov-review" style="color:var(--orange)">0</div>
+        <div class="overview-label">待复习</div>
+      </div>
+      <div class="overview-cell">
+        <div class="overview-num" id="ov-mastered" style="color:var(--green)">0</div>
+        <div class="overview-label">已掌握</div>
+      </div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="home-progress-bar" style="width:0%"></div>
+    </div>
+    <div style="font-size:12px;color:var(--text-secondary);text-align:right;" id="home-progress-text">今日进度 0%</div>
+  </div>
+
+  <!-- 大开始按钮 -->
+  <button class="btn-primary" id="home-start-btn" onclick="switchPage('study')" style="margin-bottom:16px;font-size:18px;padding:18px;">
+    开始学习 →
+  </button>
+
+  <!-- 累计统计 -->
+  <div style="font-size:15px;font-weight:700;margin-bottom:10px;">📈 累计统计</div>
+  <div class="stats-grid">
+    <div class="stat-cell">
+      <div class="stat-num" id="stat-total">0</div>
+      <div class="stat-label">总词汇</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-num" id="stat-mastered">0</div>
+      <div class="stat-label">已掌握</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-num" id="stat-reviews">0</div>
+      <div class="stat-label">复习次数</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-num" id="stat-streak">0</div>
+      <div class="stat-label">连续天数 🔥</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 页面：学习 ===== -->
+<div id="page-study" class="page">
+  <div id="study-area"></div>
+</div>
+
+<!-- ===== 页面：词库 ===== -->
+<div id="page-wordbook" class="page">
+  <!-- 搜索框 -->
+  <div style="position:relative;margin-bottom:12px;">
+    <input type="text" id="wb-search" placeholder="🔍 搜索法语或中文…" oninput="onWbSearch()" style="padding-left:16px;padding-right:40px;">
+    <button id="wb-search-clear" onclick="clearWbSearch()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;font-size:18px;color:var(--text-secondary);display:none;">✕</button>
+  </div>
+
+  <!-- 分类标签栏 -->
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;">
+    <span style="font-size:13px;color:var(--text-secondary);">分类</span>
+    <span style="font-size:13px;color:var(--primary);cursor:pointer;" onclick="openCategoryManager()">管理 ›</span>
+  </div>
+  <div class="category-tags" id="wb-category-tags"></div>
+
+  <!-- 状态过滤 -->
+  <div class="status-filters" id="wb-status-filters">
+    <div class="status-filter active" data-status="all" onclick="selectStatus('all')">全部</div>
+    <div class="status-filter" data-status="0" onclick="selectStatus('0')">新词</div>
+    <div class="status-filter" data-status="1" onclick="selectStatus('1')">学习中</div>
+    <div class="status-filter" data-status="2" onclick="selectStatus('2')">已掌握</div>
+  </div>
+
+  <!-- 单词列表 -->
+  <div id="wb-word-list"></div>
+</div>
+
+<!-- ===== 页面：设置 ===== -->
+<div id="page-settings" class="page">
+  <div style="font-size:20px;font-weight:700;margin-bottom:4px;">⚙️ 设置</div>
+  <div style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">个性化你的学习体验</div>
+
+  <div class="settings-section-title">学习设置</div>
+  <div class="settings-group">
+    <div class="settings-item" onclick="editSetting('daily_new_limit')">
+      <span class="settings-item-label">📚 每日新词</span>
+      <span class="settings-item-value" id="set-new-limit">20 个 ›</span>
+    </div>
+    <div class="settings-item" onclick="editSetting('daily_review_limit')">
+      <span class="settings-item-label">🔄 每日复习上限</span>
+      <span class="settings-item-value" id="set-review-limit">200 个 ›</span>
+    </div>
+    <div class="settings-item">
+      <span class="settings-item-label">🔊 自动朗读</span>
+      <div class="toggle-switch" id="toggle-auto-speak" onclick="toggleAutoSpeak()"></div>
+    </div>
+  </div>
+
+  <div class="settings-section-title">外观</div>
+  <div class="settings-group">
+    <div class="settings-item">
+      <span class="settings-item-label">🌙 深色模式</span>
+      <div class="toggle-switch" id="toggle-dark" onclick="toggleDarkMode()"></div>
+    </div>
+  </div>
+
+  <div class="settings-section-title">数据</div>
+  <div class="settings-group">
+    <div class="settings-item" onclick="exportData()">
+      <span class="settings-item-label">📤 导出 JSON</span>
+      <span class="settings-item-value">›</span>
+    </div>
+    <div class="settings-item" onclick="document.getElementById('import-file').click()">
+      <span class="settings-item-label">📥 导入 JSON</span>
+      <span class="settings-item-value">›</span>
+    </div>
+    <input type="file" id="import-file" accept=".json" style="display:none" onchange="handleImportFile(this)">
+  </div>
+
+  <div class="settings-section-title">危险操作</div>
+  <div class="settings-group">
+    <div class="settings-item" onclick="resetProgress()">
+      <span class="settings-item-label">🔁 重置进度</span>
+      <span class="settings-item-value" style="color:var(--orange)">›</span>
+    </div>
+    <div class="settings-item" onclick="clearAllData()">
+      <span class="settings-item-label" style="color:var(--red)">🗑️ 清空数据</span>
+      <span class="settings-item-value" style="color:var(--red)">›</span>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:24px;font-size:12px;color:var(--text-secondary);">
+    <div id="set-total-words">共 0 个词汇</div>
+    <div style="margin-top:4px;">版本 1.0.0</div>
+  </div>
+</div>
+
+<!-- ===== 底部导航 ===== -->
+<nav class="bottom-nav">
+  <div class="nav-item active" data-page="home" onclick="switchPage('home')">
+    <span class="nav-icon">🏠</span>首页
+  </div>
+  <div class="nav-item" data-page="study" onclick="switchPage('study')">
+    <span class="nav-icon">📖</span>学习
+  </div>
+  <div class="nav-item" data-page="wordbook" onclick="switchPage('wordbook')">
+    <span class="nav-icon">📚</span>词库
+  </div>
+  <div class="nav-item" data-page="settings" onclick="switchPage('settings')">
+    <span class="nav-icon">⚙️</span>设置
+  </div>
+</nav>
+
+<!-- ===== 悬浮"+"按钮（词库页专属）===== -->
+<button class="fab" id="fab-add" onclick="openAddModal()">＋</button>
+
+<!-- ===== 添加单词模态框 ===== -->
+<div id="add-modal-overlay" class="modal-overlay" style="display:none;" onclick="handleAddModalOverlayClick(event)">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">添加单词</span>
+      <button class="modal-close" onclick="closeAddModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Tab栏 -->
+      <div class="modal-tabs">
+        <div class="modal-tab active" data-tab="single" onclick="switchAddTab('single')">逐个</div>
+        <div class="modal-tab" data-tab="batch" onclick="switchAddTab('batch')">批量</div>
+        <div class="modal-tab" data-tab="ocr" onclick="switchAddTab('ocr')">📷 拍照</div>
+      </div>
+
+      <!-- Tab1：逐个 -->
+      <div id="add-tab-single">
+        <div class="form-group">
+          <label class="form-label">法语单词</label>
+          <input type="text" id="single-french" placeholder="例：bonjour" autocorrect="off" autocapitalize="none" spellcheck="false">
+        </div>
+        <div class="form-group">
+          <label class="form-label">中文释义</label>
+          <input type="text" id="single-chinese" placeholder="例：你好">
+        </div>
+        <div class="form-group">
+          <label class="form-label">分类（选填）</label>
+          <select id="single-category">
+            <option value="">无分类</option>
+          </select>
+        </div>
+        <div class="form-row" style="margin-bottom:14px;">
+          <input type="checkbox" id="single-continue" style="width:auto;margin:0;" checked>
+          <label for="single-continue" style="font-size:14px;color:var(--text-secondary);">保存后继续添加</label>
+        </div>
+        <button class="btn-primary" onclick="saveSingleWord()">保存</button>
+      </div>
+
+      <!-- Tab2：批量 -->
+      <div id="add-tab-batch" style="display:none;">
+        <div class="form-group">
+          <label class="form-label">批量输入</label>
+          <textarea id="batch-text" rows="7" placeholder="每行一个，逗号分隔法语和中文…" oninput="onBatchTextChange()" style="font-family:monospace;font-size:13px;resize:vertical;"></textarea>
+        </div>
+        <div class="format-toggle" onclick="toggleFormatHelp()">▶ 查看格式说明</div>
+        <div id="format-help" style="display:none;" class="format-box">格式1（简单）：
+bonjour, 你好
+merci, 谢谢
+
+格式2（带词根，空行分隔）：
+découvrir, 发现
+原型：découvrir (动词)
+拆解：
+dé- (前缀：去除/分离)
+-couvr- (词根：覆盖)
+-ir (动词后缀)
+记忆逻辑：去掉覆盖物 -> 发现
+
+格式3（序号括号）：
+1. bonjour (你好)
+2. merci (谢谢)</div>
+        <div id="batch-preview" style="display:none;margin-bottom:12px;">
+          <div style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;">预览（共 <span id="batch-count">0</span> 个）</div>
+          <div class="preview-list" id="batch-preview-list"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">分类（选填）</label>
+          <select id="batch-category">
+            <option value="">无分类</option>
+          </select>
+        </div>
+        <button class="btn-primary" onclick="importBatchWords()">导入</button>
+      </div>
+
+      <!-- Tab3：拍照OCR -->
+      <div id="add-tab-ocr" style="display:none;">
+        <div class="ocr-drop-area" onclick="document.getElementById('ocr-file-input').click()">
+          <div id="ocr-area-inner">
+            <div style="font-size:48px;margin-bottom:8px;">📷</div>
+            <div style="font-size:15px;font-weight:600;margin-bottom:4px;">点击拍照或选择图片</div>
+            <div style="font-size:13px;color:var(--text-secondary);">识别图片中的法汉对照词汇</div>
+          </div>
+          <img id="ocr-img-preview" class="ocr-img-preview" style="display:none;">
+        </div>
+        <input type="file" id="ocr-file-input" accept="image/*" capture="environment" style="display:none" onchange="handleOcrFile(this)">
+        <div id="ocr-progress-wrap" style="display:none;">
+          <div style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;">识别中… <span id="ocr-pct">0</span>%</div>
+          <div class="ocr-progress-bar"><div class="ocr-progress-fill" id="ocr-progress-fill" style="width:0%"></div></div>
+        </div>
+        <div id="ocr-preview" style="display:none;margin-bottom:12px;">
+          <div style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;">识别结果（共 <span id="ocr-count">0</span> 个）</div>
+          <div class="preview-list" id="ocr-preview-list"></div>
+        </div>
+        <div id="ocr-import-btn-wrap" style="display:none;">
+          <div class="form-group">
+            <label class="form-label">分类（选填）</label>
+            <select id="ocr-category">
+              <option value="">无分类</option>
+            </select>
+          </div>
+          <button class="btn-primary" onclick="importOcrWords()">导入选中单词</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 编辑单词模态框 ===== -->
+<div id="edit-modal-overlay" class="edit-modal-overlay" style="display:none;" onclick="handleEditModalOverlayClick(event)">
+  <div class="edit-modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">编辑单词</span>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:0 20px 20px;">
+      <div style="height:16px;"></div>
+      <div class="form-group">
+        <label class="form-label">法语单词</label>
+        <input type="text" id="edit-french" autocorrect="off" autocapitalize="none" spellcheck="false">
+      </div>
+      <div class="form-group">
+        <label class="form-label">中文释义</label>
+        <input type="text" id="edit-chinese">
+      </div>
+      <div class="form-group">
+        <label class="form-label">分类</label>
+        <select id="edit-category">
+          <option value="">无分类</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">词根信息（选填，留空则清除）</label>
+        <textarea id="edit-morphology" rows="7" placeholder="原型：découvrir (动词)
+拆解：
+dé- (前缀：去除/分离)
+-couvr- (词根：覆盖)
+-ir (动词后缀)
+记忆逻辑：去掉覆盖物 -> 发现" style="font-family:monospace;font-size:13px;resize:vertical;"></textarea>
+      </div>
+      <button class="btn-primary" onclick="saveEditWord()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 分类管理模态 ===== -->
+<div id="cat-modal-overlay" class="cat-modal-overlay" style="display:none;" onclick="handleCatOverlayClick(event)">
+  <div class="cat-modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">管理分类</span>
+      <button class="modal-close" onclick="closeCategoryManager()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:0 20px 20px;">
+      <div style="height:12px;"></div>
+      <div id="cat-list-container"></div>
+      <div style="height:12px;"></div>
+      <div class="form-row">
+        <input type="text" id="new-cat-input" placeholder="新分类名称" style="flex:1;" autocorrect="off" autocapitalize="none">
+        <button onclick="addNewCategory()" style="padding:10px 16px;background:var(--primary);color:#fff;border-radius:8px;font-size:14px;font-weight:600;white-space:nowrap;">+ 新建</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 词库详情面板 ===== -->
+<div id="word-detail-overlay" class="detail-overlay" style="display:none;" onclick="closeWordDetail()"></div>
+<div id="word-detail-panel" class="detail-panel" style="display:none;"></div>
+
+<!-- ===== JSON 导入预览 ===== -->
+<div id="json-import-overlay" class="import-preview-overlay" style="display:none;">
+  <div class="import-preview-card">
+    <div class="modal-header" style="padding:16px 20px 12px;border-bottom:1px solid var(--border-color);">
+      <span class="modal-title">导入预览</span>
+      <button class="modal-close" onclick="closeJsonImport()">✕</button>
+    </div>
+    <div class="import-preview-body">
+      <div class="import-stat-row">
+        <div class="import-stat-chip chip-new"><div id="ji-new-count">0</div><div style="font-size:11px;margin-top:2px;">新增</div></div>
+        <div class="import-stat-chip chip-dup"><div id="ji-dup-count">0</div><div style="font-size:11px;margin-top:2px;">已存在</div></div>
+        <div class="import-stat-chip" style="background:var(--primary-light);color:var(--primary);"><div id="ji-cat-count">0</div><div style="font-size:11px;margin-top:2px;">新分类</div></div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label class="form-row" style="gap:8px;cursor:pointer;">
+          <input type="checkbox" id="ji-overwrite" style="width:auto;margin:0;accent-color:var(--primary);">
+          <span style="font-size:14px;">覆盖已存在的单词</span>
+        </label>
+      </div>
+      <div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;">备份已自动保存到本地</div>
+    </div>
+    <div style="padding:12px 16px;border-top:1px solid var(--border-color);display:flex;gap:10px;">
+      <button class="btn-secondary" style="width:auto;padding:12px 20px;" onclick="closeJsonImport()">取消</button>
+      <button class="btn-primary" style="margin-top:0;" onclick="confirmJsonImport()">确认导入</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 数量选择模态（复习全部）===== -->
+<div id="qty-modal-overlay" class="qty-modal-overlay" style="display:none;" onclick="closeQtyModal()">
+  <div class="qty-modal-card" onclick="event.stopPropagation()">
+    <div style="font-size:16px;font-weight:700;margin-bottom:16px;text-align:center;">复习数量</div>
+    <div class="form-group">
+      <input type="number" id="qty-input" value="20" min="1" max="500" style="font-size:24px;text-align:center;padding:12px;">
+    </div>
+    <div style="font-size:12px;color:var(--text-secondary);text-align:center;margin-bottom:16px;">最多 <span id="qty-max">0</span> 个</div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn-outline" onclick="closeQtyModal()">取消</button>
+      <button class="btn-fill" onclick="confirmQtyAndStart()">开始</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 设置项输入模态 ===== -->
+<div id="setting-input-overlay" class="qty-modal-overlay" style="display:none;" onclick="closeSettingInput()">
+  <div class="qty-modal-card" onclick="event.stopPropagation()">
+    <div style="font-size:16px;font-weight:700;margin-bottom:8px;text-align:center;" id="setting-input-title"></div>
+    <div style="font-size:13px;color:var(--text-secondary);text-align:center;margin-bottom:16px;" id="setting-input-desc"></div>
+    <div class="form-group">
+      <input type="number" id="setting-input-val" min="1" max="9999" style="font-size:22px;text-align:center;padding:12px;">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:4px;">
+      <button class="btn-outline" onclick="closeSettingInput()">取消</button>
+      <button class="btn-fill" onclick="saveSettingInput()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================================================================
+   工具函数
+================================================================ */
+
+// 显示 Toast（z-index:400，顶部滑入2秒消失）
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.top = '20px';
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => { t.style.top = '-60px'; }, 2000);
+}
+
+// 确认对话框（z-index:300/301）
+function showConfirmDialog(title, message, onConfirm, confirmText='确认', isDanger=false) {
+  const overlay = document.createElement('div');
+  overlay.className = 'confirm-overlay';
+  overlay.innerHTML = `
+    <div class="confirm-card">
+      <div class="confirm-title">${title}</div>
+      <div class="confirm-msg">${message}</div>
+      <div class="confirm-btns">
+        <button class="btn-cancel" onclick="this.closest('.confirm-overlay').remove()">取消</button>
+        <button class="${isDanger?'btn-danger':'btn-confirm'}" id="_confirm-ok">${confirmText}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector('#_confirm-ok').onclick = () => { overlay.remove(); onConfirm(); };
+}
+
+/* ================================================================
+   localStorage CRUD（fr_ 前缀）
+================================================================ */
+function getWords() {
+  try { return JSON.parse(localStorage.getItem('fr_words') || '[]'); } catch(e) { return []; }
+}
+function saveWords(words) {
+  localStorage.setItem('fr_words', JSON.stringify(words));
+}
+function addWord(w) {
+  const words = getWords();
+  words.push(w);
+  saveWords(words);
+}
+function updateWord(updated) {
+  const words = getWords();
+  const idx = words.findIndex(w => w.id === updated.id);
+  if (idx !== -1) { words[idx] = updated; saveWords(words); }
+}
+function deleteWord(id) {
+  saveWords(getWords().filter(w => w.id !== id));
+}
+function getCategories() {
+  try { return JSON.parse(localStorage.getItem('fr_categories') || '[]'); } catch(e) { return []; }
+}
+function saveCategories(cats) {
+  localStorage.setItem('fr_categories', JSON.stringify(cats));
+}
+function getSettings() {
+  try { return JSON.parse(localStorage.getItem('fr_settings') || '{}'); } catch(e) { return {}; }
+}
+function saveSettings(s) {
+  localStorage.setItem('fr_settings', JSON.stringify(s));
+}
+function getReviewLogs() {
+  try { return JSON.parse(localStorage.getItem('fr_review_logs') || '[]'); } catch(e) { return []; }
+}
+function saveReviewLogs(logs) {
+  localStorage.setItem('fr_review_logs', JSON.stringify(logs));
+}
+function addReviewLog(log) {
+  const logs = getReviewLogs();
+  logs.push(log);
+  // 只保留最近3000条
+  if (logs.length > 3000) logs.splice(0, logs.length - 3000);
+  saveReviewLogs(logs);
+}
+function getStreak() {
+  try { return JSON.parse(localStorage.getItem('fr_streak') || '{}'); } catch(e) { return {}; }
+}
+
+/* ================================================================
+   数据初始化
+================================================================ */
+function initData() {
+  if (!localStorage.getItem('fr_words')) {
+    const presets = [
+      {french:"bonjour", chinese:"你好"},
+      {french:"merci", chinese:"谢谢"},
+      {french:"livre", chinese:"书"},
+      {french:"chat", chinese:"猫"},
+      {french:"chien", chinese:"狗"},
+      {french:"lait", chinese:"牛奶"},
+      {french:"eau", chinese:"水"},
+      {french:"pain", chinese:"面包"},
+      {french:"maison", chinese:"房子"},
+      {french:"école", chinese:"学校"}
+    ];
+    const now = Date.now();
+    const words = presets.map((w,i) => ({
+      id: now+i, french: w.french, chinese: w.chinese,
+      category: "", type: 0, interval: 0, ease_factor: 2500,
+      due_date: 0, reps: 0, lapses: 0,
+      created_at: now+i, updated_at: now+i, morphology: null
+    }));
+    saveWords(words);
+  }
+  if (!localStorage.getItem('fr_categories')) saveCategories([]);
+  if (!localStorage.getItem('fr_review_logs')) saveReviewLogs([]);
+  if (!localStorage.getItem('fr_settings')) {
+    saveSettings({daily_new_limit:20, daily_review_limit:200, dark_mode:false, auto_speak:true});
+  }
+  if (!localStorage.getItem('fr_streak')) {
+    localStorage.setItem('fr_streak', JSON.stringify({last_study_date:0, count:0}));
+  }
+  // 补充 auto_speak 字段（老用户兼容）
+  const s = getSettings();
+  if (s.auto_speak === undefined) { s.auto_speak = true; saveSettings(s); }
+  // 应用主题
+  if (s.dark_mode) {
+    document.documentElement.setAttribute('data-theme','dark');
+    document.getElementById('theme-color-meta').setAttribute('content','#141018');
+  }
+}
+
+/* ================================================================
+   PWA Manifest
+================================================================ */
+function initPWA() {
+  const manifest = {
+    name: "背法语", short_name: "背法语", display: "standalone",
+    orientation: "portrait", background_color: "#F3F0FF", theme_color: "#7C4DFF",
+    start_url: ".",
+    icons: [{
+      src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📘</text></svg>",
+      sizes: "any", type: "image/svg+xml"
+    }]
+  };
+  try {
+    const b = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+    const l = document.createElement('link');
+    l.rel = 'manifest'; l.href = URL.createObjectURL(b);
+    document.head.appendChild(l);
+  } catch(e) {}
+}
+
+/* ================================================================
+   Speech Synthesis（朗读）
+================================================================ */
+// 预加载声音列表
+window.speechSynthesis && window.speechSynthesis.getVoices && window.speechSynthesis.getVoices();
+if (window.speechSynthesis) {
+  window.speechSynthesis.onvoiceschanged = function() { window.speechSynthesis.getVoices(); };
+}
+
+function speakWord(text) {
+  if (!window.speechSynthesis || !text) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'fr-FR';
+  utterance.rate = 0.85;
+  utterance.pitch = 1;
+  utterance.volume = 1;
+  const voices = window.speechSynthesis.getVoices();
+  const frVoice = voices.find(v => v.lang && v.lang.startsWith('fr'));
+  if (frVoice) utterance.voice = frVoice;
+  window.speechSynthesis.speak(utterance);
+}
+
+function autoSpeak(text) {
+  const s = getSettings();
+  if (s.auto_speak !== false) speakWord(text);
+}
+
+/* ================================================================
+   SM-2 算法
+================================================================ */
+function scheduleWord(word, rating) {
+  const today = Math.floor(Date.now() / 86400000);
+  if (word.type === 0) {
+    if (rating === 1) { word.interval = 0; word.type = 0; }
+    else if (rating === 2) { word.interval = 1; word.type = 1; }
+    else if (rating === 3) { word.interval = 1; word.type = 1; }
+    else { word.interval = 4; word.type = 2; word.ease_factor += 150; }
+  } else {
+    if (rating === 1) { word.interval = 1; word.ease_factor = Math.max(1300, word.ease_factor-200); word.lapses++; }
+    else if (rating === 2) { word.interval = Math.max(1, Math.round(word.interval*1.2)); word.ease_factor = Math.max(1300, word.ease_factor-150); }
+    else if (rating === 3) { word.interval = Math.max(1, Math.round(word.interval*word.ease_factor/1000)); word.type = 2; }
+    else { word.interval = Math.max(1, Math.round(word.interval*word.ease_factor/1000*1.3)); word.ease_factor += 150; word.type = 2; }
+  }
+  word.due_date = today + word.interval;
+  word.reps++;
+  word.updated_at = Date.now();
+  return word;
+}
+
+/* ================================================================
+   连续天数
+================================================================ */
+function updateStreak() {
+  const today = Math.floor(Date.now() / 86400000);
+  const s = JSON.parse(localStorage.getItem('fr_streak') || '{"last_study_date":0,"count":0}');
+  if (s.last_study_date === today) return;
+  else if (s.last_study_date === today-1) s.count++;
+  else s.count = 1;
+  s.last_study_date = today;
+  localStorage.setItem('fr_streak', JSON.stringify(s));
+}
+
+/* ================================================================
+   学习队列辅助函数
+================================================================ */
+function getAllWords() { return getWords(); }
+
+function getDueWords() {
+  const today = Math.floor(Date.now() / 86400000);
+  const s = getSettings();
+  const limit = s.daily_review_limit || 200;
+  return getWords().filter(w => w.type !== 0 && w.due_date <= today).slice(0, limit);
+}
+
+function getNewWords() {
+  const s = getSettings();
+  const limit = s.daily_new_limit || 20;
+  // 今日已学新词数
+  const today = Math.floor(Date.now() / 86400000);
+  const logs = getReviewLogs();
+  const todayNewIds = new Set(
+    logs.filter(l => Math.floor(l.ts/86400000) === today && l.is_new).map(l => l.word_id)
+  );
+  return getWords().filter(w => w.type === 0 && !todayNewIds.has(w.id)).slice(0, limit - todayNewIds.size);
+}
+
+function getTodayWrongWords() {
+  const today = Math.floor(Date.now() / 86400000);
+  const logs = getReviewLogs();
+  const wrongIds = new Set(
+    logs.filter(l => Math.floor(l.ts/86400000) === today && l.rating === 1).map(l => l.word_id)
+  );
+  const words = getWords();
+  return [...wrongIds].map(id => words.find(w => w.id === id)).filter(Boolean);
+}
+
+function getTodayStudiedWords() {
+  const today = Math.floor(Date.now() / 86400000);
+  const logs = getReviewLogs();
+  const ids = new Set(
+    logs.filter(l => Math.floor(l.ts/86400000) === today).map(l => l.word_id)
+  );
+  const words = getWords();
+  return [...ids].map(id => words.find(w => w.id === id)).filter(Boolean);
+}
+
+function shuffleArray(a) {
+  for (let i = a.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function reinsertWord(q, idx, w) {
+  const remaining = q.length - idx - 1;
+  if (remaining < 3) { q.push(w); }
+  else {
+    const offset = Math.floor(Math.random()*3) + 3;
+    q.splice(Math.min(idx+offset, q.length), 0, w);
+  }
+}
+
+function buildStudyQueue(mode, count) {
+  let w = [];
+  switch(mode) {
+    case 'normal':
+      w = getDueWords().concat(getNewWords());
+      break;
+    case 'review_all':
+      w = shuffleArray([...getAllWords()]).slice(0, count||20);
+      break;
+    case 'review_wrong':
+      w = getTodayWrongWords();
+      break;
+    case 'review_today':
+      w = getTodayStudiedWords();
+      break;
+  }
+  return shuffleArray(w);
+}
+
+/* ================================================================
+   词根渲染
+================================================================ */
+function getWordWithDots(w) {
+  if (!w.morphology || !w.morphology.parts || !w.morphology.parts.length) return w.french;
+  return w.morphology.parts.map(p => p.part.replace(/-/g,'')).join('·');
+}
+
+function renderMorphology(m) {
+  if (!m) return '';
+  let h = '';
+  if (m.prototype) h += `<div class="morph-prototype">原型：${m.prototype}</div>`;
+  if (m.parts && m.parts.length) {
+    h += `<div class="morph-section-title">拆解：</div>`;
+    m.parts.forEach(p => {
+      h += `<div class="morph-part-line"><span class="morph-part-name">${p.part}</span>（${p.desc}）</div>`;
+    });
+  }
+  if (m.memory) h += `<div class="morph-memory">💡 ${m.memory}</div>`;
+  return h;
+}
+
+function morphToText(m) {
+  if (!m) return '';
+  let lines = [];
+  if (m.prototype) lines.push('原型：' + m.prototype);
+  if (m.parts && m.parts.length) {
+    lines.push('拆解：');
+    m.parts.forEach(p => lines.push(p.part + ' (' + p.desc + ')'));
+  }
+  if (m.memory) lines.push('记忆逻辑：' + m.memory);
+  return lines.join('\n');
+}
+
+function textToMorph(text) {
+  if (!text || !text.trim()) return null;
+  const lines = text.split('\n').map(l=>l.trim()).filter(l=>l);
+  let proto='', parts=[], mem='', inP=false;
+  for (const l of lines) {
+    if (/^原型[：:]/.test(l)) { proto = l.replace(/^原型[：:]/,'').trim(); inP=false; }
+    else if (/^拆解[：:]/.test(l)) { inP=true; }
+    else if (/^记忆逻辑[：:]/.test(l)) { mem = l.replace(/^记忆逻辑[：:]/,'').trim(); inP=false; }
+    else if (inP || /^[a-zA-ZÀ-ÿ\-]/.test(l)) {
+      const m = l.match(/^([a-zA-ZÀ-ÿ\-]+)\s*[（(](.+?)[）)]/);
+      if (m) { parts.push({part:m[1].trim(), desc:m[2].trim()}); inP=true; }
+    }
+  }
+  if (!proto && !parts.length && !mem) return null;
+  return {prototype:proto, parts, memory:mem};
+}
+
+/* ================================================================
+   页面切换
+================================================================ */
+function switchPage(pageId) {
+  ['home','study','wordbook','settings'].forEach(id => {
+    document.getElementById('page-'+id).style.display = (id===pageId) ? 'block' : 'none';
+  });
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.classList.toggle('active', item.dataset.page===pageId);
+  });
+  // FAB 只在词库页显示
+  const fab = document.getElementById('fab-add');
+  if (pageId === 'wordbook') fab.classList.add('show');
+  else fab.classList.remove('show');
+
+  if (pageId === 'home') refreshHomePage();
+  if (pageId === 'study') initStudyPage();
+  if (pageId === 'wordbook') refreshWordList();
+  if (pageId === 'settings') refreshSettingsPage();
+}
+
+/* ================================================================
+   首页
+================================================================ */
+function refreshHomePage() {
+  // 问候语
+  const h = new Date().getHours();
+  const greetings = h<6?'夜深了 🌙':h<12?'早上好 ☀️':h<14?'中午好 🌤':h<18?'下午好 🌈':'晚上好 🌙';
+  document.getElementById('home-greeting').textContent = greetings;
+  // 日期
+  const d = new Date();
+  const days = ['日','一','二','三','四','五','六'];
+  document.getElementById('home-date').textContent =
+    `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 星期${days[d.getDay()]}`;
+  // 概览
+  const words = getWords();
+  const today = Math.floor(Date.now()/86400000);
+  const due = words.filter(w => w.type!==0 && w.due_date<=today).length;
+  const newW = getNewWords().length;
+  const mastered = words.filter(w => w.type===2).length;
+  const s = getSettings();
+  const totalTask = (s.daily_new_limit||20) + (s.daily_review_limit||200);
+  const done = totalTask - due - newW;
+  const pct = totalTask > 0 ? Math.max(0,Math.min(100,Math.round(done/totalTask*100))) : 0;
+  document.getElementById('ov-new').textContent = newW;
+  document.getElementById('ov-review').textContent = due;
+  document.getElementById('ov-mastered').textContent = mastered;
+  document.getElementById('home-progress-bar').style.width = pct+'%';
+  document.getElementById('home-progress-text').textContent = `今日进度 ${pct}%`;
+  // 大按钮
+  const btn = document.getElementById('home-start-btn');
+  if (due===0 && newW===0) { btn.textContent = '继续练习 →'; }
+  else { btn.textContent = '开始学习 →'; }
+  // 累计统计
+  const logs = getReviewLogs();
+  const streak = getStreak();
+  document.getElementById('stat-total').textContent = words.length;
+  document.getElementById('stat-mastered').textContent = mastered;
+  document.getElementById('stat-reviews').textContent = logs.length;
+  document.getElementById('stat-streak').textContent = streak.count || 0;
+}
+
+/* ================================================================
+   学习页
+================================================================ */
+let studyQueue = [];
+let studyIdx = 0;
+let studyMode = 'normal';
+let studyExtraCount = 0;
+let studyCorrect = 0;
+let studyTotal = 0;
+let studyStartTime = 0;
+let studyIsExtra = false;
+let studyFlipped = false;
+let studySpellAnswered = false;
+let studySpellCorrect = false;
+
+function initStudyPage() {
+  const area = document.getElementById('study-area');
+  const dueWords = getDueWords();
+  const newWords = getNewWords();
+  const hasTasks = dueWords.length > 0 || newWords.length > 0;
+
+  if (hasTasks) {
+    renderModeSelect(area, dueWords.length, newWords.length);
+  } else {
+    renderDoneOptions(area);
+  }
+}
+
+function renderModeSelect(area, dueCount, newCount) {
+  area.innerHTML = `
+    <div class="study-center" style="padding-top:20px;">
+      <div style="font-size:20px;font-weight:700;margin-bottom:20px;text-align:center;width:100%;">选择学习模式</div>
+      <div class="mode-card" onclick="startStudy('flashcard','normal')">
+        <div class="mode-emoji-wrap" style="background:#EDE7FF;">🔄</div>
+        <div class="mode-title">闪卡模式</div>
+        <div class="mode-desc">看卡片，自己判断是否记得<br>点击翻转查看答案</div>
+      </div>
+      <div class="mode-card" onclick="startStudy('spelling','normal')">
+        <div class="mode-emoji-wrap" style="background:#FEF3E2;">✍️</div>
+        <div class="mode-title">拼写模式</div>
+        <div class="mode-desc">看法语，输入中文释义<br>系统自动判断对错</div>
+      </div>
+      <div style="font-size:13px;color:var(--text-secondary);margin-top:8px;text-align:center;">
+        今日待学习：${newCount} | 待复习：${dueCount}
+      </div>
+    </div>`;
+}
+
+function renderDoneOptions(area) {
+  const today = Math.floor(Date.now()/86400000);
+  const logs = getReviewLogs().filter(l => Math.floor(l.ts/86400000)===today);
+  const total = logs.length;
+  const correct = logs.filter(l => l.rating >= 3).length;
+  const pct = total > 0 ? Math.round(correct/total*100) : 0;
+  const wrongWords = getTodayWrongWords();
+  const studiedWords = getTodayStudiedWords();
+  const allWords = getAllWords();
+
+  area.innerHTML = `
+    <div class="study-center" style="padding-top:20px;">
+      <div style="font-size:64px;text-align:center;margin-bottom:12px;">✅</div>
+      <div style="font-size:20px;font-weight:700;text-align:center;margin-bottom:6px;">今日任务已完成！</div>
+      <div style="font-size:14px;color:var(--text-secondary);text-align:center;margin-bottom:24px;">
+        今日已学习：${total} | 正确率：${pct}%
+      </div>
+      <div style="width:100%;font-size:14px;font-weight:600;color:var(--text-secondary);margin-bottom:10px;">继续练习</div>
+      <div class="extra-option-card ${allWords.length?'':'disabled'}" onclick="openQtyModal()">
+        <div class="extra-emoji-wrap" style="background:var(--primary-light);">🔄</div>
+        <div><div style="font-weight:600;">复习全部单词</div><div style="font-size:13px;color:var(--text-secondary);">共 ${allWords.length} 个，自选数量</div></div>
+      </div>
+      <div class="extra-option-card ${wrongWords.length?'':'disabled'}" onclick="${wrongWords.length?'showExtraModeSelect(\'review_wrong\')':''}">
+        <div class="extra-emoji-wrap" style="background:#FFE8E6;">📝</div>
+        <div><div style="font-weight:600;">复习错题</div><div style="font-size:13px;color:var(--text-secondary);">今天答错 ${wrongWords.length} 个</div></div>
+      </div>
+      <div class="extra-option-card ${studiedWords.length?'':'disabled'}" onclick="${studiedWords.length?'showExtraModeSelect(\'review_today\')':''}">
+        <div class="extra-emoji-wrap" style="background:#E8F8EF;">🔁</div>
+        <div><div style="font-weight:600;">重新学习今日单词</div><div style="font-size:13px;color:var(--text-secondary);">今天学了 ${studiedWords.length} 个</div></div>
+      </div>
+    </div>`;
+}
+
+function showExtraModeSelect(mode) {
+  const area = document.getElementById('study-area');
+  area.innerHTML = `
+    <div class="study-center" style="padding-top:20px;">
+      <div style="font-size:20px;font-weight:700;margin-bottom:20px;text-align:center;width:100%;">选择模式</div>
+      <div class="mode-card" onclick="startStudy('flashcard','${mode}')">
+        <div class="mode-emoji-wrap" style="background:#EDE7FF;">🔄</div>
+        <div class="mode-title">闪卡模式</div>
+        <div class="mode-desc">看卡片，自己判断是否记得</div>
+      </div>
+      <div class="mode-card" onclick="startStudy('spelling','${mode}')">
+        <div class="mode-emoji-wrap" style="background:#FEF3E2;">✍️</div>
+        <div class="mode-title">拼写模式</div>
+        <div class="mode-desc">输入中文释义，自动判断对错</div>
+      </div>
+    </div>`;
+}
+
+// 数量选择模态（复习全部）
+function openQtyModal() {
+  const allWords = getAllWords();
+  document.getElementById('qty-max').textContent = allWords.length;
+  document.getElementById('qty-input').value = Math.min(20, allWords.length);
+  document.getElementById('qty-modal-overlay').style.display = 'flex';
+}
+function closeQtyModal() {
+  document.getElementById('qty-modal-overlay').style.display = 'none';
+}
+function confirmQtyAndStart() {
+  const cnt = parseInt(document.getElementById('qty-input').value) || 20;
+  closeQtyModal();
+  showExtraModeSelectWithCount(cnt);
+}
+function showExtraModeSelectWithCount(count) {
+  window._reviewAllCount = count;
+  const area = document.getElementById('study-area');
+  area.innerHTML = `
+    <div class="study-center" style="padding-top:20px;">
+      <div style="font-size:20px;font-weight:700;margin-bottom:20px;text-align:center;width:100%;">选择模式</div>
+      <div class="mode-card" onclick="startStudy('flashcard','review_all',${count})">
+        <div class="mode-emoji-wrap" style="background:#EDE7FF;">🔄</div>
+        <div class="mode-title">闪卡模式</div>
+        <div class="mode-desc">看卡片，自己判断是否记得</div>
+      </div>
+      <div class="mode-card" onclick="startStudy('spelling','review_all',${count})">
+        <div class="mode-emoji-wrap" style="background:#FEF3E2;">✍️</div>
+        <div class="mode-title">拼写模式</div>
+        <div class="mode-desc">输入中文释义，自动判断对错</div>
+      </div>
+    </div>`;
+}
+
+function startStudy(cardMode, queueMode, count) {
+  studyMode = cardMode;
+  studyIsExtra = (queueMode !== 'normal');
+  studyQueue = buildStudyQueue(queueMode, count);
+  if (!studyQueue.length) { showToast('没有可学习的单词'); initStudyPage(); return; }
+  studyIdx = 0; studyCorrect = 0; studyTotal = 0;
+  studyStartTime = Date.now();
+  studyFlipped = false; studySpellAnswered = false;
+
+  if (cardMode === 'flashcard') renderFlashcard();
+  else renderSpelling();
+}
+
+/* ---- 闪卡模式 ---- */
+function renderFlashcard() {
+  if (studyIdx >= studyQueue.length) { renderFinish(); return; }
+  const word = studyQueue[studyIdx];
+  const dots = getWordWithDots(word);
+  const hasMorph = !!(word.morphology && (word.morphology.prototype||word.morphology.parts?.length||word.morphology.memory));
+  const total = studyQueue.length;
+  const pct = Math.round(studyIdx/total*100);
+  studyFlipped = false;
+
+  const area = document.getElementById('study-area');
+  area.innerHTML = `
+    <div class="study-progress-bar"><div class="study-progress-fill" style="width:${pct}%"></div></div>
+    <div class="study-progress-text">${studyIdx+1} / ${total}</div>
+    <div class="flip-card" id="flip-card" onclick="flipCard()">
+      <div class="flip-inner" id="flip-inner">
+        <!-- 正面 -->
+        <div class="flip-face">
+          <div class="flip-word">
+            <span>${word.french}</span>
+            <button class="speak-btn" onclick="event.stopPropagation();speakWord('${word.french.replace(/'/g,"\\'")}')">🔊</button>
+          </div>
+          <div class="flip-hint" style="margin-top:8px;">点击卡片查看释义</div>
+        </div>
+        <!-- 背面 -->
+        <div class="flip-face flip-back" id="flip-back-face">
+          <div style="width:100%;">
+            <div class="flip-dots">${dots}${hasMorph?'':''}</div>
+            <div class="flip-chinese">${word.chinese}</div>
+            ${hasMorph ? `
+            <div style="text-align:center;">
+              <div class="morph-toggle-btn" onclick="event.stopPropagation();toggleMorphInCard()" id="morph-toggle-btn">▶ 词根记忆</div>
+              <div id="morph-in-card" style="display:none;margin-top:0;">
+                <div class="morph-content">${renderMorphology(word.morphology)}</div>
+              </div>
+            </div>` : ''}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="rating-area" style="display:none;">
+      <div class="rating-btns">
+        <button class="rating-btn r1" onclick="rateWord(1)">😵<br>忘了</button>
+        <button class="rating-btn r2" onclick="rateWord(2)">😕<br>模糊</button>
+        <button class="rating-btn r3" onclick="rateWord(3)">😊<br>记得</button>
+        <button class="rating-btn r4" onclick="rateWord(4)">🚀<br>简单</button>
+      </div>
+    </div>`;
+
+  // 自动朗读
+  autoSpeak(word.french);
+}
+
+function flipCard() {
+  if (studyFlipped) return;
+  studyFlipped = true;
+  document.getElementById('flip-inner').classList.add('flipped');
+  document.getElementById('rating-area').style.display = 'block';
+  document.getElementById('rating-area').style.animation = 'fadeIn 0.3s ease';
+}
+
+function toggleMorphInCard() {
+  const el = document.getElementById('morph-in-card');
+  const btn = document.getElementById('morph-toggle-btn');
+  if (!el) return;
+  const isHidden = el.style.display === 'none';
+  el.style.display = isHidden ? 'block' : 'none';
+  btn.textContent = isHidden ? '▼ 词根记忆' : '▶ 词根记忆';
+}
+
+function rateWord(rating) {
+  const word = studyQueue[studyIdx];
+  const isNew = word.type === 0;
+  const updated = scheduleWord({...word}, rating);
+  updateWord(updated);
+  addReviewLog({word_id:word.id, rating, ts:Date.now(), is_new:isNew, mode:'flashcard'});
+  studyTotal++;
+  if (rating >= 3) studyCorrect++;
+  // 错误/模糊重入队列
+  if (rating <= 2) {
+    reinsertWord(studyQueue, studyIdx, {...updated});
+  }
+  updateStreak();
+  studyIdx++;
+  renderFlashcard();
+}
+
+/* ---- 拼写模式 ---- */
+function renderSpelling() {
+  if (studyIdx >= studyQueue.length) { renderFinish(); return; }
+  const word = studyQueue[studyIdx];
+  const total = studyQueue.length;
+  const pct = Math.round(studyIdx/total*100);
+  studySpellAnswered = false; studySpellCorrect = false;
+
+  const area = document.getElementById('study-area');
+  area.innerHTML = `
+    <div class="study-progress-bar"><div class="study-progress-fill" style="width:${pct}%"></div></div>
+    <div class="study-progress-text">${studyIdx+1} / ${total}</div>
+    <div class="spell-card">
+      <div class="spell-word">
+        <span>${word.french}</span>
+        <button class="speak-btn" onclick="speakWord('${word.french.replace(/'/g,"\\'")}')">🔊</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="text-align:center;display:block;">请输入中文释义：</label>
+        <input type="text" id="spell-input" placeholder="输入中文…" onkeydown="if(event.key==='Enter')checkSpell()" autocorrect="off" autocomplete="off" style="text-align:center;font-size:18px;">
+      </div>
+      <button class="btn-primary" onclick="checkSpell()" style="margin-top:8px;">确认</button>
+    </div>`;
+
+  setTimeout(() => {
+    const inp = document.getElementById('spell-input');
+    if (inp) inp.focus();
+  }, 100);
+
+  // 自动朗读
+  autoSpeak(word.french);
+}
+
+function checkAnswer(input, answer) {
+  const a = input.trim(), b = answer.trim();
+  if (!a) return false;
+  if (a === b) return true;
+  const sep = /[,，;；、/]/;
+  for (const x of b.split(sep).map(s=>s.trim()).filter(s=>s))
+    for (const y of a.split(sep).map(s=>s.trim()).filter(s=>s))
+      if (x && y && (x.includes(y) || y.includes(x))) return true;
+  return false;
+}
+
+function checkSpell() {
+  if (studySpellAnswered) return;
+  const word = studyQueue[studyIdx];
+  const inp = document.getElementById('spell-input');
+  if (!inp) return;
+  const userAns = inp.value;
+  const correct = checkAnswer(userAns, word.chinese);
+  studySpellAnswered = true;
+  studySpellCorrect = correct;
+  renderSpellResult(word, userAns, correct);
+}
+
+function renderSpellResult(word, userAns, correct) {
+  const hasMorph = !!(word.morphology && (word.morphology.prototype||word.morphology.parts?.length||word.morphology.memory));
+  const dots = getWordWithDots(word);
+  const isNew = word.type === 0;
+  const rating = correct ? 3 : 1;
+  const updated = scheduleWord({...word}, rating);
+  updateWord(updated);
+  addReviewLog({word_id:word.id, rating, ts:Date.now(), is_new:isNew, mode:'spelling'});
+  studyTotal++;
+  if (correct) studyCorrect++;
+  if (!correct) reinsertWord(studyQueue, studyIdx, {...updated});
+  updateStreak();
+
+  const area = document.getElementById('study-area');
+  const total = studyQueue.length;
+  const pct = Math.round(studyIdx/total*100);
+
+  // 答错时自动展开词根；答对时折叠
+  const morphHtml = hasMorph ? `
+    <div style="margin-top:12px;">
+      <div class="morph-toggle-btn" onclick="toggleSpellMorph()" id="spell-morph-btn">${correct?'▶ 词根记忆':'▼ 词根记忆'}</div>
+      <div id="spell-morph-content" style="display:${correct?'none':'block'};margin-top:0;">
+        <div class="morph-content">${renderMorphology(word.morphology)}</div>
+      </div>
+    </div>` : '';
+
+  area.innerHTML = `
+    <div class="study-progress-bar"><div class="study-progress-fill" style="width:${pct}%"></div></div>
+    <div class="study-progress-text">${studyIdx+1} / ${total}</div>
+    <div class="spell-card">
+      <div class="spell-result-icon">${correct?'✅':'❌'}</div>
+      <div class="spell-word" style="justify-content:center;">
+        <span>${correct?dots:word.french}</span>
+        <button class="speak-btn" onclick="speakWord('${word.french.replace(/'/g,"\\'")}')">🔊</button>
+      </div>
+      ${!correct ? `
+        <div class="spell-answer-compare">
+          <div>你的答案：<span class="wrong-answer">${userAns||'（未填）'}</span></div>
+          <div>正确答案：<span class="correct-answer">${word.chinese}</span></div>
+        </div>` : `<div style="text-align:center;color:var(--green);font-size:15px;margin-bottom:4px;">正确！${word.chinese}</div>`}
+      ${morphHtml}
+    </div>
+    <button class="btn-primary" onclick="nextSpell()" style="margin-top:4px;">下一个 →</button>`;
+}
+
+function toggleSpellMorph() {
+  const el = document.getElementById('spell-morph-content');
+  const btn = document.getElementById('spell-morph-btn');
+  if (!el) return;
+  const isHidden = el.style.display === 'none';
+  el.style.display = isHidden ? 'block' : 'none';
+  btn.textContent = isHidden ? '▼ 词根记忆' : '▶ 词根记忆';
+}
+
+function nextSpell() {
+  studyIdx++;
+  renderSpelling();
+}
+
+/* ---- 完成页 ---- */
+function renderFinish() {
+  const secs = Math.round((Date.now() - studyStartTime) / 1000);
+  const mins = Math.floor(secs/60);
+  const timeStr = mins > 0 ? `${mins}分${secs%60}秒` : `${secs}秒`;
+  const pct = studyTotal > 0 ? Math.round(studyCorrect/studyTotal*100) : 0;
+
+  const area = document.getElementById('study-area');
+  area.innerHTML = `
+    <div class="study-center" style="padding-top:20px;">
+      <div class="finish-card">
+        <div class="finish-icon">🎉</div>
+        <div class="finish-title">${studyIsExtra?'练习完成！':'太棒了！'}</div>
+        <div class="finish-sub">${studyIsExtra?`练习了 ${studyTotal} 个`:`学习了 ${studyTotal} 个`}</div>
+        <div class="finish-stats">
+          <div class="finish-stat">
+            <div class="finish-stat-num">${studyTotal}</div>
+            <div class="finish-stat-label">学习次数</div>
+          </div>
+          <div class="finish-stat">
+            <div class="finish-stat-num">${pct}%</div>
+            <div class="finish-stat-label">正确率</div>
+          </div>
+          <div class="finish-stat">
+            <div class="finish-stat-num">${timeStr}</div>
+            <div class="finish-stat-label">用时</div>
+          </div>
+        </div>
+        <div class="finish-btns">
+          <button class="btn-outline" onclick="initStudyPage()">再来一次</button>
+          <button class="btn-fill" onclick="switchPage('home')">返回首页</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ================================================================
+   词库页
+================================================================ */
+let wbCurrentCategory = 'all';
+let wbCurrentStatus = 'all';
+let wbSearchText = '';
+
+function refreshWordList() {
+  renderCategoryTags();
+  renderWordList();
+}
+
+function renderCategoryTags() {
+  const cats = getCategories();
+  const container = document.getElementById('wb-category-tags');
+  let html = `<div class="category-tag ${wbCurrentCategory==='all'?'active':''}" onclick="selectCategory('all')">全部</div>`;
+  cats.forEach(c => {
+    html += `<div class="category-tag ${wbCurrentCategory===c?'active':''}" onclick="selectCategory('${c.replace(/'/g,"\\'")}') ">${c}</div>`;
+  });
+  container.innerHTML = html;
+}
+
+function selectCategory(cat) {
+  wbCurrentCategory = cat;
+  renderCategoryTags();
+  renderWordList();
+}
+
+function selectStatus(st) {
+  wbCurrentStatus = st;
+  document.querySelectorAll('.status-filter').forEach(el => {
+    el.classList.toggle('active', el.dataset.status === st);
+  });
+  renderWordList();
+}
+
+function onWbSearch() {
+  wbSearchText = document.getElementById('wb-search').value;
+  document.getElementById('wb-search-clear').style.display = wbSearchText ? 'flex' : 'none';
+  renderWordList();
+}
+
+function clearWbSearch() {
+  document.getElementById('wb-search').value = '';
+  wbSearchText = '';
+  document.getElementById('wb-search-clear').style.display = 'none';
+  renderWordList();
+}
+
+function renderWordList() {
+  let words = getWords();
+  // 分类过滤
+  if (wbCurrentCategory !== 'all') {
+    words = words.filter(w => (w.category||'') === wbCurrentCategory);
+  }
+  // 状态过滤
+  if (wbCurrentStatus !== 'all') {
+    words = words.filter(w => String(w.type) === wbCurrentStatus);
+  }
+  // 搜索
+  if (wbSearchText) {
+    const q = wbSearchText.toLowerCase();
+    words = words.filter(w =>
+      w.french.toLowerCase().includes(q) || w.chinese.includes(wbSearchText)
+    );
+  }
+
+  const container = document.getElementById('wb-word-list');
+  if (!words.length) {
+    container.innerHTML = `<div style="text-align:center;padding:48px 0;color:var(--text-secondary);">📭 暂无单词</div>`;
+    return;
+  }
+
+  const today = Math.floor(Date.now()/86400000);
+  const typeMap = [{label:'新词',cls:'badge-new'},{label:'学习中',cls:'badge-learning'},{label:'已掌握',cls:'badge-mastered'}];
+  let html = '';
+  words.forEach(w => {
+    const tm = typeMap[w.type] || typeMap[0];
+    const dueDate = w.due_date ? new Date(w.due_date*86400000) : null;
+    const dueDateStr = dueDate ? `${dueDate.getMonth()+1}月${dueDate.getDate()}日` : '-';
+    const intervalStr = w.interval ? `${w.interval}天` : '-';
+    const hasMorph = !!(w.morphology && (w.morphology.prototype||w.morphology.parts?.length||w.morphology.memory));
+    html += `
+      <div class="word-card-item" onclick="openWordDetail(${w.id})">
+        <div class="word-item-top">
+          <span class="word-french">${w.french}${hasMorph?' 🔬':''}</span>
+          <span class="word-badge ${tm.cls}">${tm.label}</span>
+        </div>
+        <div class="word-chinese">${w.chinese}</div>
+        <div class="word-meta">间隔：${intervalStr} | 下次：${dueDateStr}</div>
+      </div>`;
+  });
+  container.innerHTML = html;
+}
+
+/* 单词详情面板 */
+function openWordDetail(id) {
+  const word = getWords().find(w => w.id === id);
+  if (!word) return;
+  const typeMap = ['新词','学习中','已掌握'];
+  const hasMorph = !!(word.morphology && (word.morphology.prototype||word.morphology.parts?.length||word.morphology.memory));
+  const today = Math.floor(Date.now()/86400000);
+  const dueDate = word.due_date ? new Date(word.due_date*86400000) : null;
+  const dueDateStr = dueDate ? `${dueDate.getMonth()+1}月${dueDate.getDate()}日` : '-';
+
+  const panel = document.getElementById('word-detail-panel');
+  panel.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div>
+        <div style="font-size:24px;font-weight:700;display:flex;align-items:center;gap:6px;">
+          ${word.french}
+          <button class="speak-btn" onclick="speakWord('${word.french.replace(/'/g,"\\'")}')">🔊</button>
+        </div>
+        <div style="font-size:16px;color:var(--text-secondary);margin-top:4px;">${word.chinese}</div>
+      </div>
+      <button onclick="closeWordDetail()" style="background:var(--primary-light);color:var(--primary);width:32px;height:32px;border-radius:50%;font-size:18px;">✕</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+      <span style="font-size:13px;background:var(--bg);padding:4px 10px;border-radius:10px;color:var(--text-secondary);">
+        ${typeMap[word.type]||'新词'}
+      </span>
+      ${word.category ? `<span style="font-size:13px;background:var(--primary-light);color:var(--primary);padding:4px 10px;border-radius:10px;">${word.category}</span>` : ''}
+    </div>
+    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;line-height:1.8;">
+      复习次数：${word.reps} | 出错次数：${word.lapses}<br>
+      复习间隔：${word.interval||'-'} 天 | 下次复习：${dueDateStr}
+    </div>
+    ${hasMorph ? `
+    <div style="margin-bottom:14px;">
+      <div class="morph-toggle-btn" onclick="toggleDetailMorph()" id="detail-morph-btn">▶ 词根记忆</div>
+      <div id="detail-morph-content" style="display:none;">
+        <div class="morph-content">${renderMorphology(word.morphology)}</div>
+      </div>
+    </div>` : ''}
+    <div style="display:flex;gap:8px;">
+      <button onclick="openEditWord(${word.id})" style="flex:1;padding:11px;background:var(--primary-light);color:var(--primary);border-radius:10px;font-size:14px;font-weight:600;">编辑</button>
+      <button onclick="resetWordProgress(${word.id})" style="flex:1;padding:11px;background:#FEF3E2;color:var(--orange);border-radius:10px;font-size:14px;font-weight:600;">重置</button>
+      <button onclick="confirmDeleteWord(${word.id})" style="flex:1;padding:11px;background:#FFE8E6;color:var(--red);border-radius:10px;font-size:14px;font-weight:600;">删除</button>
+    </div>`;
+
+  document.getElementById('word-detail-overlay').style.display = 'block';
+  panel.style.display = 'block';
+}
+
+function closeWordDetail() {
+  document.getElementById('word-detail-overlay').style.display = 'none';
+  document.getElementById('word-detail-panel').style.display = 'none';
+}
+
+function toggleDetailMorph() {
+  const el = document.getElementById('detail-morph-content');
+  const btn = document.getElementById('detail-morph-btn');
+  if (!el) return;
+  const isHidden = el.style.display === 'none';
+  el.style.display = isHidden ? 'block' : 'none';
+  btn.textContent = isHidden ? '▼ 词根记忆' : '▶ 词根记忆';
+}
+
+function resetWordProgress(id) {
+  showConfirmDialog('重置进度', '确定重置该词的学习进度？', () => {
+    const words = getWords();
+    const idx = words.findIndex(w => w.id === id);
+    if (idx !== -1) {
+      words[idx] = {...words[idx], type:0, interval:0, ease_factor:2500, due_date:0, reps:0, lapses:0, updated_at:Date.now()};
+      saveWords(words);
+    }
+    closeWordDetail();
+    renderWordList();
+    showToast('进度已重置');
+  }, '重置');
+}
+
+function confirmDeleteWord(id) {
+  showConfirmDialog('删除单词', '确定删除该单词？此操作不可恢复。', () => {
+    deleteWord(id);
+    closeWordDetail();
+    renderWordList();
+    showToast('已删除');
+  }, '删除', true);
+}
+
+/* ================================================================
+   分类管理
+================================================================ */
+function openCategoryManager() {
+  renderCategoryManagerList();
+  document.getElementById('cat-modal-overlay').style.display = 'flex';
+  document.getElementById('new-cat-input').value = '';
+}
+
+function closeCategoryManager() {
+  document.getElementById('cat-modal-overlay').style.display = 'none';
+  renderCategoryTags();
+  renderWordList();
+}
+
+function handleCatOverlayClick(e) {
+  if (e.target === document.getElementById('cat-modal-overlay')) closeCategoryManager();
+}
+
+function renderCategoryManagerList() {
+  const cats = getCategories();
+  const container = document.getElementById('cat-list-container');
+  if (!cats.length) {
+    container.innerHTML = `<div style="text-align:center;padding:20px 0;color:var(--text-secondary);font-size:14px;">暂无分类，添加第一个吧 ↓</div>`;
+    return;
+  }
+  let html = '';
+  cats.forEach(c => {
+    const words = getWords().filter(w => (w.category||'') === c);
+    html += `
+      <div class="cat-manage-item">
+        <div class="cat-manage-name">${c} <span style="color:var(--text-secondary);font-size:12px;">(${words.length}词)</span></div>
+        <button class="cat-action-btn cat-edit-btn" onclick="editCategory('${c.replace(/'/g,"\\'")}')">编辑</button>
+        <button class="cat-action-btn cat-del-btn" onclick="deleteCategory('${c.replace(/'/g,"\\'")}')">删除</button>
+      </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function addNewCategory() {
+  const input = document.getElementById('new-cat-input');
+  const name = input.value.trim();
+  if (!name) { showToast('请输入分类名称'); return; }
+  const cats = getCategories();
+  if (cats.includes(name)) { showToast('分类已存在'); return; }
+  cats.push(name);
+  saveCategories(cats);
+  input.value = '';
+  renderCategoryManagerList();
+  showToast('分类已添加');
+}
+
+function editCategory(oldName) {
+  showInputDialog('编辑分类', oldName, (newName) => {
+    if (!newName || newName === oldName) return;
+    const cats = getCategories();
+    if (cats.includes(newName)) { showToast('分类已存在'); return; }
+    const idx = cats.indexOf(oldName);
+    if (idx !== -1) cats[idx] = newName;
+    saveCategories(cats);
+    // 更新单词分类
+    const words = getWords().map(w => w.category === oldName ? {...w, category:newName} : w);
+    saveWords(words);
+    if (wbCurrentCategory === oldName) wbCurrentCategory = newName;
+    renderCategoryManagerList();
+    showToast('分类已更新');
+  });
+}
+
+function deleteCategory(name) {
+  showConfirmDialog(`删除分类"${name}"`,
+    `该分类下的单词将归入"全部"（无分类），单词本身不会删除。`,
+    () => {
+      const cats = getCategories().filter(c => c !== name);
+      saveCategories(cats);
+      const words = getWords().map(w => w.category === name ? {...w, category:''} : w);
+      saveWords(words);
+      if (wbCurrentCategory === name) wbCurrentCategory = 'all';
+      renderCategoryManagerList();
+      showToast('分类已删除');
+    }, '删除', true);
+}
+
+// 简单文本输入弹窗
+function showInputDialog(title, defaultVal, onOk) {
+  const overlay = document.createElement('div');
+  overlay.className = 'confirm-overlay';
+  overlay.innerHTML = `
+    <div class="confirm-card">
+      <div class="confirm-title">${title}</div>
+      <input type="text" id="_input-dialog-val" value="${defaultVal.replace(/"/g,'&quot;')}" style="margin-bottom:16px;" autocorrect="off" autocapitalize="none">
+      <div class="confirm-btns">
+        <button class="btn-cancel" onclick="this.closest('.confirm-overlay').remove()">取消</button>
+        <button class="btn-confirm" id="_input-dialog-ok">确认</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector('#_input-dialog-ok').onclick = () => {
+    const val = overlay.querySelector('#_input-dialog-val').value.trim();
+    overlay.remove();
+    onOk(val);
+  };
+  setTimeout(() => overlay.querySelector('#_input-dialog-val').focus(), 50);
+}
+
+/* ================================================================
+   添加单词模态框
+================================================================ */
+let currentAddTab = 'single';
+let batchParsed = [];
+let ocrParsed = [];
+
+function openAddModal() {
+  document.getElementById('add-modal-overlay').style.display = 'flex';
+  switchAddTab('single');
+  populateCategorySelects();
+  document.getElementById('single-french').value = '';
+  document.getElementById('single-chinese').value = '';
+  document.getElementById('batch-text').value = '';
+  document.getElementById('batch-preview').style.display = 'none';
+  batchParsed = [];
+  // 重置OCR
+  resetOcrTab();
+  setTimeout(() => document.getElementById('single-french').focus(), 100);
+}
+
+function closeAddModal() {
+  document.getElementById('add-modal-overlay').style.display = 'none';
+}
+
+function handleAddModalOverlayClick(e) {
+  if (e.target === document.getElementById('add-modal-overlay')) closeAddModal();
+}
+
+function switchAddTab(tab) {
+  currentAddTab = tab;
+  ['single','batch','ocr'].forEach(t => {
+    document.querySelector(`.modal-tab[data-tab="${t}"]`).classList.toggle('active', t===tab);
+    document.getElementById(`add-tab-${t}`).style.display = t===tab ? 'block' : 'none';
+  });
+}
+
+function populateCategorySelects() {
+  const cats = getCategories();
+  const selIds = ['single-category','batch-category','ocr-category','edit-category'];
+  selIds.forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    sel.innerHTML = '<option value="">无分类</option>';
+    cats.forEach(c => { sel.innerHTML += `<option value="${c}">${c}</option>`; });
+  });
+}
+
+/* --- Tab1 逐个 --- */
+function saveSingleWord() {
+  const french = document.getElementById('single-french').value.trim();
+  const chinese = document.getElementById('single-chinese').value.trim();
+  const category = document.getElementById('single-category').value;
+  if (!french) { showToast('请输入法语单词'); return; }
+  if (!chinese) { showToast('请输入中文释义'); return; }
+  // 判重
+  const exists = getWords().find(w => w.french.toLowerCase() === french.toLowerCase());
+  if (exists) { showToast(`"${french}" 已存在`); return; }
+  const now = Date.now();
+  addWord({
+    id: now, french, chinese, category, type: 0,
+    interval: 0, ease_factor: 2500, due_date: 0,
+    reps: 0, lapses: 0, created_at: now, updated_at: now, morphology: null
+  });
+  showToast(`已添加 "${french}"`);
+  if (document.getElementById('single-continue').checked) {
+    document.getElementById('single-french').value = '';
+    document.getElementById('single-chinese').value = '';
+    document.getElementById('single-french').focus();
+  } else {
+    closeAddModal();
+  }
+  renderWordList();
+}
+
+/* --- Tab2 批量 --- */
+function toggleFormatHelp() {
+  const el = document.getElementById('format-help');
+  const toggle = el.previousElementSibling;
+  const isHidden = el.style.display === 'none';
+  el.style.display = isHidden ? 'block' : 'none';
+  toggle.textContent = isHidden ? '▼ 查看格式说明' : '▶ 查看格式说明';
+}
+
+function parseBatchImport(text) {
+  const blocks = text.split(/\n\s*\n/).filter(b=>b.trim()), results = [];
+  for (const block of blocks) {
+    const lines = block.split('\n').map(l=>l.trim()).filter(l=>l);
+    if (!lines.length) continue;
+    let french, chinese;
+    const np = lines[0].match(/^\d+[\.\)]\s*(.+?)\s*[（(](.+?)[）)]\s*$/);
+    if (np) { french = np[1].trim(); chinese = np[2].trim(); }
+    else {
+      const cm = lines[0].match(/^(?:\d+[\.\)]\s*)?(.+?)[,，\t]\s*(.+)$/);
+      if (!cm) continue;
+      french = cm[1].trim(); chinese = cm[2].trim();
+    }
+    let morphology = null;
+    if (lines.length > 1) {
+      let proto='', parts=[], mem='', inP=false;
+      for (let i=1; i<lines.length; i++) {
+        const l = lines[i];
+        if (/^原型[：:]/.test(l)) { proto=l.replace(/^原型[：:]/,'').trim(); inP=false; }
+        else if (/^拆解[：:]/.test(l)) { inP=true; }
+        else if (/^记忆逻辑[：:]/.test(l)) { mem=l.replace(/^记忆逻辑[：:]/,'').trim(); inP=false; }
+        else if (inP||/^[a-zA-ZÀ-ÿ\-]/.test(l)) {
+          const m = l.match(/^([a-zA-ZÀ-ÿ\-]+)\s*[（(](.+?)[）)]/);
+          if (m) { parts.push({part:m[1].trim(), desc:m[2].trim()}); inP=true; }
+        }
+      }
+      if (proto||parts.length||mem) morphology = {prototype:proto, parts, memory:mem};
+    }
+    results.push({french, chinese, morphology, valid:true, selected:true});
+  }
+  if (!results.length) {
+    text.split('\n').map(l=>l.trim()).filter(l=>l).forEach(line => {
+      const m = line.match(/^(?:\d+[\.\)]\s*)?(.+?)[,，\t]\s*(.+)$/);
+      if (m) results.push({french:m[1].trim(), chinese:m[2].trim(), morphology:null, valid:true, selected:true});
+    });
+  }
+  return results;
+}
+
+function onBatchTextChange() {
+  const text = document.getElementById('batch-text').value;
+  batchParsed = parseBatchImport(text);
+  renderBatchPreview();
+}
+
+function renderBatchPreview() {
+  const preview = document.getElementById('batch-preview');
+  if (!batchParsed.length) { preview.style.display = 'none'; return; }
+  preview.style.display = 'block';
+  document.getElementById('batch-count').textContent = batchParsed.length;
+  const existingFrench = new Set(getWords().map(w => w.french.toLowerCase()));
+  let html = '';
+  batchParsed.forEach((item, i) => {
+    const isDup = existingFrench.has(item.french.toLowerCase());
+    const hasMorph = !!item.morphology;
+    html += `
+      <div class="preview-item ${isDup?'duplicate':''}">
+        <input type="checkbox" ${item.selected&&!isDup?'checked':''} ${isDup?'disabled':''} onchange="batchParsed[${i}].selected=this.checked">
+        <span style="flex:1;">${item.french} — ${item.chinese}${hasMorph?' 🔬':''}</span>
+        ${isDup?'<span style="font-size:11px;color:var(--orange);">已存在</span>':''}
+      </div>`;
+  });
+  document.getElementById('batch-preview-list').innerHTML = html;
+}
+
+function importBatchWords() {
+  const toImport = batchParsed.filter(item => item.selected && item.valid);
+  if (!toImport.length) { showToast('没有可导入的单词'); return; }
+  const category = document.getElementById('batch-category').value;
+  const existingFrench = new Set(getWords().map(w => w.french.toLowerCase()));
+  let added = 0, skipped = 0;
+  toImport.forEach(item => {
+    if (existingFrench.has(item.french.toLowerCase())) { skipped++; return; }
+    const now = Date.now() + added;
+    addWord({
+      id: now, french: item.french, chinese: item.chinese,
+      category, type: 0, interval: 0, ease_factor: 2500, due_date: 0,
+      reps: 0, lapses: 0, created_at: now, updated_at: now,
+      morphology: item.morphology || null
+    });
+    added++;
+  });
+  showToast(`已导入 ${added} 个，跳过 ${skipped} 个`);
+  closeAddModal();
+  renderWordList();
+}
+
+/* --- Tab3 拍照OCR --- */
+function resetOcrTab() {
+  document.getElementById('ocr-area-inner').style.display = 'block';
+  document.getElementById('ocr-img-preview').style.display = 'none';
+  document.getElementById('ocr-progress-wrap').style.display = 'none';
+  document.getElementById('ocr-preview').style.display = 'none';
+  document.getElementById('ocr-import-btn-wrap').style.display = 'none';
+  ocrParsed = [];
+}
+
+async function handleOcrFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  // 显示预览图
+  const imgEl = document.getElementById('ocr-img-preview');
+  imgEl.src = URL.createObjectURL(file);
+  imgEl.style.display = 'block';
+  document.getElementById('ocr-area-inner').style.display = 'none';
+  document.getElementById('ocr-progress-wrap').style.display = 'block';
+  document.getElementById('ocr-preview').style.display = 'none';
+  document.getElementById('ocr-import-btn-wrap').style.display = 'none';
+
+  try {
+    const text = await recognizeImage(file, (pct) => {
+      document.getElementById('ocr-pct').textContent = pct;
+      document.getElementById('ocr-progress-fill').style.width = pct + '%';
+    });
+    document.getElementById('ocr-progress-wrap').style.display = 'none';
+    ocrParsed = parseOcrResult(text);
+    renderOcrPreview();
+  } catch(e) {
+    document.getElementById('ocr-progress-wrap').style.display = 'none';
+    showToast('识别失败，请重试');
+  }
+  input.value = '';
+}
+
+async function recognizeImage(file, onProgress) {
+  const worker = await Tesseract.createWorker('fra+chi_sim', 1, {
+    logger: m => { if (m.status==='recognizing text' && onProgress) onProgress(Math.round(m.progress*100)); }
+  });
+  const { data: { text } } = await worker.recognize(file);
+  await worker.terminate();
+  return text;
+}
+
+function parseOcrResult(text) {
+  const lines = text.split('\n').map(l=>l.trim()).filter(l=>l), pairs = [];
+  for (let i=0; i<lines.length; i++) {
+    const frMatch = lines[i].match(/[a-zA-ZÀ-ÿ]+(?:[\s\-'][a-zA-ZÀ-ÿ]+)*/);
+    const chnMatch = lines[i].match(/[\u4e00-\u9fff]+(?:[\s,，、;；/]\s*[\u4e00-\u9fff]+)*/);
+    const f = frMatch ? frMatch[0].trim() : null;
+    const c = chnMatch ? chnMatch[0].trim() : null;
+    if (f && c) { pairs.push({french:f, chinese:c, morphology:null, valid:true, selected:true}); }
+    else if (f && !c && i+1 < lines.length) {
+      const nc = lines[i+1].match(/[\u4e00-\u9fff]+/);
+      if (nc) { pairs.push({french:f, chinese:nc[0].trim(), morphology:null, valid:true, selected:true}); i++; continue; }
+      pairs.push({french:f, chinese:'???', morphology:null, valid:false, selected:false});
+    }
+  }
+  return pairs;
+}
+
+function renderOcrPreview() {
+  const preview = document.getElementById('ocr-preview');
+  if (!ocrParsed.length) {
+    preview.style.display = 'block';
+    document.getElementById('ocr-preview-list').innerHTML = '<div style="color:var(--text-secondary);font-size:14px;padding:8px 0;">未识别到有效词汇</div>';
+    return;
+  }
+  preview.style.display = 'block';
+  document.getElementById('ocr-import-btn-wrap').style.display = 'block';
+  document.getElementById('ocr-count').textContent = ocrParsed.length;
+  const existingFrench = new Set(getWords().map(w=>w.french.toLowerCase()));
+  let html = '';
+  ocrParsed.forEach((item, i) => {
+    const isDup = existingFrench.has(item.french.toLowerCase());
+    html += `
+      <div class="preview-item ${isDup?'duplicate':''}">
+        <input type="checkbox" ${item.selected&&!isDup?'checked':''} ${isDup?'disabled':''} onchange="ocrParsed[${i}].selected=this.checked">
+        <span style="flex:1;${!item.valid?'color:var(--red);':''}">${item.french} — ${item.chinese}</span>
+        ${isDup?'<span style="font-size:11px;color:var(--orange);">已存在</span>':''}
+      </div>`;
+  });
+  document.getElementById('ocr-preview-list').innerHTML = html;
+}
+
+function importOcrWords() {
+  const toImport = ocrParsed.filter(item => item.selected && item.valid && item.chinese !== '???');
+  if (!toImport.length) { showToast('没有选中有效单词'); return; }
+  const category = document.getElementById('ocr-category').value;
+  const existingFrench = new Set(getWords().map(w=>w.french.toLowerCase()));
+  let added = 0, skipped = 0;
+  toImport.forEach(item => {
+    if (existingFrench.has(item.french.toLowerCase())) { skipped++; return; }
+    const now = Date.now() + added;
+    addWord({
+      id: now, french: item.french, chinese: item.chinese,
+      category, type: 0, interval: 0, ease_factor: 2500, due_date: 0,
+      reps: 0, lapses: 0, created_at: now, updated_at: now, morphology: null
+    });
+    added++;
+  });
+  showToast(`已导入 ${added} 个，跳过 ${skipped} 个`);
+  closeAddModal();
+  renderWordList();
+}
+
+/* ================================================================
+   编辑单词
+================================================================ */
+let editingWordId = null;
+
+function openEditWord(id) {
+  const word = getWords().find(w => w.id === id);
+  if (!word) return;
+  editingWordId = id;
+  populateCategorySelects();
+  document.getElementById('edit-french').value = word.french;
+  document.getElementById('edit-chinese').value = word.chinese;
+  document.getElementById('edit-category').value = word.category || '';
+  document.getElementById('edit-morphology').value = morphToText(word.morphology);
+  closeWordDetail();
+  document.getElementById('edit-modal-overlay').style.display = 'flex';
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal-overlay').style.display = 'none';
+  editingWordId = null;
+}
+
+function handleEditModalOverlayClick(e) {
+  if (e.target === document.getElementById('edit-modal-overlay')) closeEditModal();
+}
+
+function saveEditWord() {
+  const french = document.getElementById('edit-french').value.trim();
+  const chinese = document.getElementById('edit-chinese').value.trim();
+  const category = document.getElementById('edit-category').value;
+  const morphText = document.getElementById('edit-morphology').value;
+  if (!french) { showToast('请输入法语单词'); return; }
+  if (!chinese) { showToast('请输入中文释义'); return; }
+  const words = getWords();
+  const idx = words.findIndex(w => w.id === editingWordId);
+  if (idx === -1) return;
+  // 判重（排除自身）
+  const dup = words.find(w => w.id !== editingWordId && w.french.toLowerCase() === french.toLowerCase());
+  if (dup) { showToast(`"${french}" 已存在`); return; }
+  words[idx] = {
+    ...words[idx],
+    french, chinese, category,
+    morphology: textToMorph(morphText),
+    updated_at: Date.now()
+  };
+  saveWords(words);
+  closeEditModal();
+  renderWordList();
+  showToast('已保存');
+}
+
+/* ================================================================
+   设置页
+================================================================ */
+function refreshSettingsPage() {
+  const s = getSettings();
+  document.getElementById('set-new-limit').textContent = (s.daily_new_limit||20) + ' 个 ›';
+  document.getElementById('set-review-limit').textContent = (s.daily_review_limit||200) + ' 个 ›';
+  // 深色模式开关
+  const darkToggle = document.getElementById('toggle-dark');
+  darkToggle.classList.toggle('on', !!s.dark_mode);
+  // 自动朗读开关
+  const speakToggle = document.getElementById('toggle-auto-speak');
+  speakToggle.classList.toggle('on', s.auto_speak !== false);
+  // 总词汇
+  document.getElementById('set-total-words').textContent = `共 ${getWords().length} 个词汇`;
+}
+
+let currentSettingKey = '';
+function editSetting(key) {
+  currentSettingKey = key;
+  const s = getSettings();
+  const titles = {daily_new_limit:'每日新词', daily_review_limit:'每日复习上限'};
+  const descs = {daily_new_limit:'每天最多学习的新词数量', daily_review_limit:'每天最多复习的单词数量'};
+  document.getElementById('setting-input-title').textContent = titles[key] || '';
+  document.getElementById('setting-input-desc').textContent = descs[key] || '';
+  document.getElementById('setting-input-val').value = s[key] || 20;
+  document.getElementById('setting-input-overlay').style.display = 'flex';
+  setTimeout(() => document.getElementById('setting-input-val').select(), 50);
+}
+function closeSettingInput() {
+  document.getElementById('setting-input-overlay').style.display = 'none';
+}
+function saveSettingInput() {
+  const val = parseInt(document.getElementById('setting-input-val').value);
+  if (!val || val < 1) { showToast('请输入有效数字'); return; }
+  const s = getSettings();
+  s[currentSettingKey] = val;
+  saveSettings(s);
+  closeSettingInput();
+  refreshSettingsPage();
+  showToast('已保存');
+}
+
+function toggleDarkMode() {
+  const s = getSettings();
+  s.dark_mode = !s.dark_mode;
+  saveSettings(s);
+  if (s.dark_mode) {
+    document.documentElement.setAttribute('data-theme','dark');
+    document.getElementById('theme-color-meta').setAttribute('content','#141018');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+    document.getElementById('theme-color-meta').setAttribute('content','#7C4DFF');
+  }
+  refreshSettingsPage();
+}
+
+function toggleAutoSpeak() {
+  const s = getSettings();
+  s.auto_speak = s.auto_speak === false ? true : false;
+  saveSettings(s);
+  refreshSettingsPage();
+  showToast(s.auto_speak ? '自动朗读已开启' : '自动朗读已关闭');
+}
+
+function resetProgress() {
+  showConfirmDialog('重置进度', '将清空所有单词的学习进度（保留词库），确定继续？', () => {
+    const words = getWords().map(w => ({
+      ...w, type:0, interval:0, ease_factor:2500, due_date:0, reps:0, lapses:0, updated_at:Date.now()
+    }));
+    saveWords(words);
+    saveReviewLogs([]);
+    localStorage.setItem('fr_streak', JSON.stringify({last_study_date:0, count:0}));
+    showToast('进度已重置');
+    refreshSettingsPage();
+  }, '重置');
+}
+
+function clearAllData() {
+  showConfirmDialog('清空数据', '将删除所有单词和学习记录，此操作不可恢复！', () => {
+    ['fr_words','fr_categories','fr_review_logs','fr_streak'].forEach(k => localStorage.removeItem(k));
+    const s = getSettings();
+    saveSettings(s);
+    initData();
+    showToast('数据已清空');
+    refreshSettingsPage();
+  }, '清空', true);
+}
+
+/* ================================================================
+   JSON 导出
+================================================================ */
+function exportData() {
+  const data = {
+    app: "WordCard_FR", version: "1.0.0",
+    exported_at: new Date().toISOString(),
+    words: getWords(),
+    categories: getCategories(),
+    review_logs: getReviewLogs(),
+    settings: getSettings(),
+    streak: getStreak()
+  };
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const n = new Date();
+  a.download = `wordcard_fr_${n.getFullYear()}${String(n.getMonth()+1).padStart(2,'0')}${String(n.getDate()).padStart(2,'0')}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  showToast('导出成功！');
+}
+
+/* ================================================================
+   JSON 导入
+================================================================ */
+let pendingImportData = null;
+
+function handleImportFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.app !== 'WordCard_FR') { showToast('文件格式不正确'); return; }
+      pendingImportData = data;
+      showJsonImportPreview(data);
+    } catch(err) {
+      showToast('JSON 解析失败，请检查文件');
+    }
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
+function showJsonImportPreview(data) {
+  const importWords = data.words || [];
+  const existingFrench = new Set(getWords().map(w=>w.french.toLowerCase()));
+  const newCount = importWords.filter(w => !existingFrench.has(w.french.toLowerCase())).length;
+  const dupCount = importWords.length - newCount;
+  const importCats = data.categories || [];
+  const existingCats = new Set(getCategories());
+  const newCatCount = importCats.filter(c => !existingCats.has(c)).length;
+
+  document.getElementById('ji-new-count').textContent = newCount;
+  document.getElementById('ji-dup-count').textContent = dupCount;
+  document.getElementById('ji-cat-count').textContent = newCatCount;
+  document.getElementById('ji-overwrite').checked = false;
+
+  // 自动备份
+  try {
+    localStorage.setItem('fr_backup', JSON.stringify({
+      words: getWords(), categories: getCategories(),
+      review_logs: getReviewLogs(), backup_at: new Date().toISOString()
+    }));
+  } catch(e) {}
+
+  document.getElementById('json-import-overlay').style.display = 'flex';
+}
+
+function closeJsonImport() {
+  document.getElementById('json-import-overlay').style.display = 'none';
+  pendingImportData = null;
+}
+
+function confirmJsonImport() {
+  if (!pendingImportData) return;
+  const overwrite = document.getElementById('ji-overwrite').checked;
+  const importWords = pendingImportData.words || [];
+  const importCats = pendingImportData.categories || [];
+  const words = getWords();
+  const frenchMap = new Map(words.map(w => [w.french.toLowerCase(), w]));
+  let added = 0, updated = 0, skipped = 0;
+
+  importWords.forEach(iw => {
+    const key = iw.french.toLowerCase();
+    if (frenchMap.has(key)) {
+      if (overwrite) {
+        const existing = frenchMap.get(key);
+        const idx = words.findIndex(w => w.id === existing.id);
+        if (idx !== -1) { words[idx] = {...existing, chinese:iw.chinese, morphology:iw.morphology||null, category:iw.category||'', updated_at:Date.now()}; }
+        updated++;
+      } else { skipped++; }
+    } else {
+      words.push({...iw, id:Date.now()+added, created_at:Date.now()+added, updated_at:Date.now()+added});
+      added++;
+    }
+  });
+  saveWords(words);
+
+  // 合并分类
+  const cats = getCategories();
+  importCats.forEach(c => { if (c && !cats.includes(c)) cats.push(c); });
+  saveCategories(cats);
+
+  closeJsonImport();
+  showToast(`导入 ${added} 个，更新 ${updated} 个，跳过 ${skipped} 个`);
+  if (document.getElementById('page-wordbook').style.display === 'block') refreshWordList();
+  refreshSettingsPage();
+}
+
+/* ================================================================
+   DOMContentLoaded 启动
+================================================================ */
+document.addEventListener('DOMContentLoaded', function() {
+  initData();
+  initPWA();
+  switchPage('home');
+});
+</script>
+</body>
+</html>
